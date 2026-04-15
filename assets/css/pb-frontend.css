@@ -1,0 +1,183 @@
+/* ============================================================
+   Promo Banner — Frontend Styles
+   ============================================================ */
+
+/* ── Keyframe Animations ────────────────────────────────────── */
+@keyframes pb-slide-down {
+    from { transform: translateY(-110%); opacity: 0; }
+    to   { transform: translateY(0);     opacity: 1; }
+}
+
+@keyframes pb-slide-up {
+    from { transform: translateY(110%);  opacity: 0; }
+    to   { transform: translateY(0);     opacity: 1; }
+}
+
+@keyframes pb-fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+/* Phase 1: slide/fade the content out */
+@keyframes pb-slide-out-up {
+    0%   { transform: translateY(0);     opacity: 1; }
+    100% { transform: translateY(-100%); opacity: 0; }
+}
+
+@keyframes pb-fade-out {
+    0%   { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+/* Phase 2: collapse the space (height + padding) smoothly — done via JS jQuery.animate */
+
+/* ── Base Banner Styles ─────────────────────────────────────── */
+.pb-banner {
+    position: relative;
+    width: 100%;
+    box-sizing: border-box;
+    text-align: center;
+    overflow: hidden;
+    z-index: 9990;
+    /* Prevent flash before JS triggers animation */
+}
+
+.pb-banner-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    position: relative;
+    z-index: 1;
+}
+
+/* ── Typography ─────────────────────────────────────────────── */
+.pb-title {
+    margin: 0;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    line-height: 1.3;
+}
+
+.pb-subtitle {
+    margin: 2px 0 6px;
+    font-size: 14px;
+    opacity: 0.92;
+    line-height: 1.5;
+}
+
+.pb-link {
+    display: inline-block;
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    border-bottom: 1px solid currentColor;
+    padding-bottom: 1px;
+    transition: opacity 0.2s ease;
+    margin-top: 2px;
+}
+
+.pb-link:hover {
+    opacity: 0.8;
+    text-decoration: none;
+}
+
+/* ── Close Button ────────────────────────────────────────────── */
+.pb-close-btn {
+    position: absolute;
+    top: 50%;
+    right: 16px;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 22px;
+    line-height: 1;
+    opacity: 0.75;
+    padding: 4px 8px;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    z-index: 2;
+}
+
+.pb-close-btn:hover {
+    opacity: 1;
+    transform: translateY(-50%) scale(1.15);
+}
+
+/* ── Animations (applied by JS after page load) ─────────────── */
+.pb-banner.pb-animated.pb-anim-slide_down {
+    animation: pb-slide-down 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.pb-banner.pb-animated.pb-anim-slide_up {
+    animation: pb-slide-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.pb-banner.pb-animated.pb-anim-fade_in {
+    animation: pb-fade-in 0.6s ease both;
+}
+
+/* ── Exit Animations — Phase 1 (slide/fade out) ─────────────── */
+/* overflow:hidden keeps content inside during translate */
+.pb-banner.pb-dismissing {
+    overflow: hidden;
+    animation: pb-slide-out-up 0.38s cubic-bezier(0.4, 0, 1, 1) forwards;
+    pointer-events: none;
+}
+
+.pb-banner.pb-anim-fade_in.pb-dismissing,
+.pb-banner.pb-anim-none.pb-dismissing {
+    animation: pb-fade-out 0.28s ease forwards;
+}
+
+/* ── Position Variants ──────────────────────────────────────── */
+/* Floating — fixed at top */
+.pb-banner.pb-pos-floating {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 99999;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Spacer so fixed floating banner doesn't cover content */
+body.has-pb-floating {
+    transition: padding-top 0.3s ease;
+}
+
+/* ── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .pb-banner {
+        padding: 16px 32px !important;
+    }
+
+    .pb-title {
+        font-size: 16px !important;
+    }
+
+    .pb-subtitle {
+        font-size: 13px;
+    }
+
+    .pb-close-btn {
+        right: 8px;
+        font-size: 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .pb-banner {
+        padding: 14px 36px !important;
+    }
+
+    .pb-banner-inner {
+        gap: 2px;
+    }
+}
+
+/* ── Print: Hide Banners ────────────────────────────────────── */
+@media print {
+    .pb-banner { display: none !important; }
+}
