@@ -4,29 +4,60 @@
 
 /* ── Keyframe Animations ────────────────────────────────────── */
 @keyframes pb-slide-down {
-    from { transform: translateY(-110%); opacity: 0; }
-    to   { transform: translateY(0);     opacity: 1; }
+    from {
+        transform: translateY(-110%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
 }
 
 @keyframes pb-slide-up {
-    from { transform: translateY(110%);  opacity: 0; }
-    to   { transform: translateY(0);     opacity: 1; }
+    from {
+        transform: translateY(110%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
 }
 
 @keyframes pb-fade-in {
-    from { opacity: 0; }
-    to   { opacity: 1; }
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
 
 /* Phase 1: slide/fade the content out */
 @keyframes pb-slide-out-up {
-    0%   { transform: translateY(0);     opacity: 1; }
-    100% { transform: translateY(-100%); opacity: 0; }
+    0% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
 }
 
 @keyframes pb-fade-out {
-    0%   { opacity: 1; }
-    100% { opacity: 0; }
+    0% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0;
+    }
 }
 
 /* Phase 2: collapse the space (height + padding) smoothly — done via JS jQuery.animate */
@@ -86,23 +117,29 @@
 /* ── Close Button ────────────────────────────────────────────── */
 .pb-close-btn {
     position: absolute;
-    top: 50%;
     right: 16px;
     transform: translateY(-50%);
     background: none;
     border: none;
     cursor: pointer;
-    font-size: 22px;
-    line-height: 1;
+    font-size: 16px;
+    line-height: .5;
     opacity: 0.75;
-    padding: 4px 8px;
+    padding: 4px;
     transition: opacity 0.2s ease, transform 0.2s ease;
     z-index: 2;
+    margin: 0;
+    background: #fff;
+    border-radius: 100%;
+    width: 20px;
+    height: 20px;
+    color: #000 !important;
 }
 
 .pb-close-btn:hover {
     opacity: 1;
     transform: translateY(-50%) scale(1.15);
+    color: #fff !important;
 }
 
 /* ── Animations (applied by JS after page load) ─────────────── */
@@ -177,7 +214,41 @@ body.has-pb-floating {
     }
 }
 
-/* ── Print: Hide Banners ────────────────────────────────────── */
 @media print {
-    .pb-banner { display: none !important; }
+    .pb-banner {
+        display: none !important;
+    }
+}
+
+/* ── In-Grid Injection (Layout Fixes) ───────────────────────── */
+.pb-grid-injection {
+    /* 1. Establish a Block Formatting Context (BFC) 
+       Crucial: prevents internal Elementor 'clear: both' from leaking 
+       out and dropping the section below the shop's sidebar. */
+    display: flow-root !important;
+
+    /* 2. CSS Grid: span the full width of the grid */
+    grid-column: 1 / -1 !important;
+
+    /* 3. Flexbox/Floats: Force full width */
+    width: 100% !important;
+    flex: 0 0 100% !important;
+    max-width: 100% !important;
+
+    /* 4. Reset properties */
+    list-style: none !important;
+    margin: 0 0 2.992em 0 !important;
+    /* Standard WooCommerce bottom margin */
+    padding: 0 !important;
+    box-sizing: border-box !important;
+
+    /* 5. Clear floats from preceding products */
+    clear: both !important;
+}
+
+/* Ensure the product immediately following the injected section 
+   also clears properly and starts on a fresh row. */
+.pb-grid-injection+li.product,
+.pb-grid-injection+.product {
+    clear: both !important;
 }

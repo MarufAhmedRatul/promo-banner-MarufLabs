@@ -98,11 +98,17 @@ class PB_Frontend {
      *
      * @return void
      */
+    public static $current_injections = [];
+    public static $grid_cols          = 3;
+
     public static function register_hooks() {
         $banners = self::get_active_banners();
         if ( empty( $banners ) ) {
             return;
         }
+
+        $grid_injections = [];
+        $grid_columns    = 3; // default
 
         foreach ( $banners as $banner ) {
             if ( ! self::should_display( $banner->ID ) ) {
@@ -144,7 +150,72 @@ class PB_Frontend {
                     );
                 }
             }
+            
+            // Gather grid injections
+            if ( in_array( 'in_product_grid', (array) $locations, true ) ) {
+                $cols = get_post_meta( $banner->ID, '_pb_grid_columns', true );
+                if ( $cols ) {
+                    $grid_columns = $cols; // Take the latest one
+                }
+
+                $injections = get_post_meta( $banner->ID, '_pb_grid_injections', true ) ?: [];
+                foreach ( $injections as $inj ) {
+                    if ( ! empty( $inj['position'] ) && ! empty( $inj['template_id'] ) ) {
+                        $grid_injections[] = $inj;
+                    }
+                }
+            }
         }
+        
+        // Register the grid injections hooks if there are any configured.
+        if ( ! empty( $grid_injections ) ) {
+            self::$current_injections = $grid_injections;
+            self::$grid_cols          = $grid_columns;
+            
+            // Hook at the start of the product loop iteraton (outside the <li> wrapper)
+            add_action( 'woocommerce_shop_loop', [ __CLASS__, 'process_shop_loop_injections' ], 10 );
+            // Catch any unrendered injections at the exact end of the loop
+            add_filter( 'woocommerce_product_loop_end', [ __CLASS__, 'process_shop_loop_end_injections' ], 10, 1 );
+        }
+    }
+    
+    /**
+     * Injects Elementor blocks between products (before the <li> is opened).
+     * This avoids breaking theme product wrappers.
+     */
+    public static function process_shop_loop_injections() {
+        static $loop_counter = 0;
+        $loop_counter++;
+
+        foreach ( self::$current_injections as $index => $inj ) {
+            if ( empty( $inj['rendered'] ) ) {
+                // If user wants it AFTER product 4, we inject BEFORE product 5.
+                $target_pos = (int) $inj['position'] + 1;
+                
+                if ( $loop_counter === $target_pos ) {
+                    self::render_grid_injection( $inj['template_id'], self::$grid_cols );
+                    // Mark as rendered so we don't duplicate it at loop end
+                    self::$current_injections[ $index ]['rendered'] = true;
+                }
+            }
+        }
+    }
+
+    /**
+     * If there are injections scheduled *after* the last product on the page, 
+     * they will be caught here and prepended right before the </ul> closes.
+     */
+    public static function process_shop_loop_end_injections( $html ) {
+        $extra_html = '';
+        foreach ( self::$current_injections as $index => $inj ) {
+            if ( empty( $inj['rendered'] ) ) {
+                ob_start();
+                self::render_grid_injection( $inj['template_id'], self::$grid_cols );
+                $extra_html .= ob_get_clean();
+                self::$current_injections[ $index ]['rendered'] = true;
+            }
+        }
+        return $extra_html . $html;
     }
 
     // ──────────────────────────────────────────────────────────────────────────
@@ -302,6 +373,35 @@ class PB_Frontend {
         ];
 
         include PB_PLUGIN_DIR . 'templates/banner-template.php';
+    }
+
+    /**
+     * Renders an injected Elementor section inside the WooCommerce product grid.
+     *
+     * @param int $template_id The Elementor template ID.
+     * @param int $columns     The number of grid columns to span.
+     * @return void
+     */
+    public static function render_grid_injection( $template_id, $columns ) {
+        if ( ! $template_id ) {
+            return;
+        }
+        
+        $content = '';
+        if ( class_exists( '\Elementor\Plugin' ) ) {
+            $content = \Elementor\Plugin::instance()->frontend->get_builder_content_for_display( $template_id, true );
+        }
+        
+        // Fallback to shortcode if direct access failed or returned empty.
+        if ( empty( $content ) ) {
+            $content = do_shortcode( '[elementor-template id="' . absint( $template_id ) . '"]' );
+        }
+
+        if ( ! empty( $content ) ) {
+            echo '<li class="pb-grid-injection" style="--pb-cols:' . absint( $columns ) . ';">';
+            echo $content; // Assumed to be safe HTML from Elementor builder.
+            echo '</li>';
+        }
     }
 }
 

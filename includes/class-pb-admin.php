@@ -78,6 +78,7 @@ class PB_Admin {
         add_meta_box( 'pb_design',    __( '🎨 Design Settings',       'promo-banner' ), [ __CLASS__, 'render_design_box'    ], PB_POST_TYPE, 'normal', 'high'    );
         add_meta_box( 'pb_display',   __( '📍 Display Location',      'promo-banner' ), [ __CLASS__, 'render_display_box'   ], PB_POST_TYPE, 'side',   'high'    );
         add_meta_box( 'pb_schedule',  __( '📅 Schedule & Status',     'promo-banner' ), [ __CLASS__, 'render_schedule_box'  ], PB_POST_TYPE, 'side',   'default' );
+        add_meta_box( 'pb_grid_injections', __( '🛍️ In-Grid Injections',   'promo-banner' ), [ __CLASS__, 'render_grid_injections_box' ], PB_POST_TYPE, 'normal', 'high'    );
         add_meta_box( 'pb_shortcode', __( '🔗 Shortcode',             'promo-banner' ), [ __CLASS__, 'render_shortcode_box' ], PB_POST_TYPE, 'side',   'default' );
     }
 
@@ -253,6 +254,7 @@ class PB_Admin {
             'after_title_section' => __( '🍞 After Breadcrumb / Title Section',    'promo-banner' ),
             'after_woo_content'   => __( '📦 After WooCommerce Content',           'promo-banner' ),
             'before_woo_sidebar'  => __( '📌 Before WooCommerce Sidebar',          'promo-banner' ),
+            'in_product_grid'     => __( '🛍️ In Product Grid (Elementor Templates)', 'promo-banner' ),
             'shortcode_only'      => __( '🔗 Shortcode Only (manual placement)',   'promo-banner' ),
         ];
         ?>
@@ -284,6 +286,7 @@ class PB_Admin {
 
         <div class="pb-target-section" id="pb_specific_targets">
             <h4><?php esc_html_e( 'Specific Pages:', 'promo-banner' ); ?></h4>
+            <input type="text" class="pb-filter-input" placeholder="<?php esc_attr_e( 'Search pages...', 'promo-banner' ); ?>" style="width:100%;margin-bottom:5px;" />
             <select name="pb_pages[]" multiple size="4">
                 <?php
                 foreach ( get_pages() as $page ) {
@@ -294,6 +297,7 @@ class PB_Admin {
             </select>
 
             <h4><?php esc_html_e( 'Blog Categories:', 'promo-banner' ); ?></h4>
+            <input type="text" class="pb-filter-input" placeholder="<?php esc_attr_e( 'Search categories...', 'promo-banner' ); ?>" style="width:100%;margin-bottom:5px;" />
             <select name="pb_categories[]" multiple size="4">
                 <?php
                 foreach ( get_categories( [ 'hide_empty' => false ] ) as $cat ) {
@@ -305,6 +309,7 @@ class PB_Admin {
 
             <?php if ( class_exists( 'WooCommerce' ) ) : ?>
             <h4><?php esc_html_e( 'WooCommerce Product Categories:', 'promo-banner' ); ?></h4>
+            <input type="text" class="pb-filter-input" placeholder="<?php esc_attr_e( 'Search product categories...', 'promo-banner' ); ?>" style="width:100%;margin-bottom:5px;" />
             <select name="pb_woo_cats[]" multiple size="4">
                 <?php
                 $woo_cats = get_terms( [ 'taxonomy' => 'product_cat', 'hide_empty' => false ] );
@@ -395,6 +400,103 @@ class PB_Admin {
     }
 
     // ──────────────────────────────────────────────────────────────────────────
+    // In-Grid Injections Meta Box
+    // ──────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Renders the In-Grid Injections settings.
+     *
+     * @param WP_Post $post Current post object.
+     * @return void
+     */
+    public static function render_grid_injections_box( $post ) {
+        $columns    = get_post_meta( $post->ID, '_pb_grid_columns', true ) ?: 3;
+        $injections = get_post_meta( $post->ID, '_pb_grid_injections', true ) ?: [];
+        ?>
+        <style>
+            .pb-grid-box { padding: 10px 0; }
+            .pb-grid-cols label { font-weight: 600; display: inline-block; width: 160px; color: #1d2327; }
+            .pb-grid-toolbar { margin: 15px 0 10px; display: flex; gap: 10px; align-items: center; }
+            .pb-grid-toolbar strong { font-weight: 600; color: #1d2327; }
+            .pb-injection-rows { max-width: 600px; }
+            .pb-injection-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; background: #f6f7f7; padding: 10px; border: 1px solid #dcdcde; border-radius: 4px; }
+            .pb-injection-row label { display: block; font-size: 11px; font-weight: 600; margin-bottom: 4px; }
+            .pb-injection-row input { box-sizing: border-box; }
+            .pb-remove-injection { color: #d63638; cursor: pointer; text-decoration: none; font-size: 20px; font-weight: bold; line-height: 1; padding: 5px; }
+            .pb-remove-injection:hover { color: #8a2424; }
+            .pb-add-injection-wrap { margin-top: 10px; }
+        </style>
+        <div class="pb-grid-box">
+            <p class="description" style="margin-bottom: 15px;">
+                <?php esc_html_e( 'Configure Elementor sections injected in the product grid loop. Note: You must also tick "In Product Grid (Elementor Templates)" in the Display Location sidebar.', 'promo-banner' ); ?>
+            </p>
+
+            <div class="pb-grid-cols">
+                <label for="pb_grid_columns"><?php esc_html_e( 'Grid Columns (Span)', 'promo-banner' ); ?></label>
+                <select name="pb_grid_columns" id="pb_grid_columns">
+                    <?php for ( $i = 1; $i <= 6; $i++ ) : ?>
+                        <option value="<?php echo esc_attr( $i ); ?>" <?php selected( $columns, $i ); ?>><?php echo esc_html( $i ); ?></option>
+                    <?php endfor; ?>
+                </select>
+                <span class="description" style="margin-left: 10px; font-size: 12px;"><?php esc_html_e( 'How many columns the product grid uses, so the injected Elementor row can properly span the full width.', 'promo-banner' ); ?></span>
+            </div>
+
+            <div class="pb-grid-toolbar">
+                <strong><?php esc_html_e( 'Injection Positions:', 'promo-banner' ); ?></strong>
+                <button type="button" class="button pb-preset-btn" data-pos="4"><?php esc_html_e( '+ After 4th', 'promo-banner' ); ?></button>
+                <button type="button" class="button pb-preset-btn" data-pos="8"><?php esc_html_e( '+ After 8th', 'promo-banner' ); ?></button>
+            </div>
+
+            <div class="pb-injection-rows" id="pb-injection-rows">
+                <?php
+                if ( empty( $injections ) ) {
+                    $injections = [ [ 'position' => '', 'template_id' => '' ] ];
+                }
+                foreach ( $injections as $index => $inj ) {
+                    $pos = isset( $inj['position'] ) ? $inj['position'] : '';
+                    $tid = isset( $inj['template_id'] ) ? $inj['template_id'] : '';
+                    ?>
+                    <div class="pb-injection-row">
+                        <div>
+                            <label><?php esc_html_e( 'After Product #', 'promo-banner' ); ?></label>
+                            <input type="number" class="pb-inj-pos" name="pb_grid_injections[<?php echo esc_attr( $index ); ?>][position]" value="<?php echo esc_attr( $pos ); ?>" min="1" step="1" style="width: 120px;" placeholder="e.g. 4" />
+                        </div>
+                        <div>
+                            <label><?php esc_html_e( 'Elementor Template ID', 'promo-banner' ); ?></label>
+                            <input type="number" name="pb_grid_injections[<?php echo esc_attr( $index ); ?>][template_id]" value="<?php echo esc_attr( $tid ); ?>" min="1" step="1" style="width: 160px;" placeholder="e.g. 150" />
+                        </div>
+                        <div style="margin-top: 16px;">
+                            <a href="#" class="pb-remove-injection" title="<?php esc_attr_e( 'Remove', 'promo-banner' ); ?>">&times;</a>
+                        </div>
+                    </div>
+                <?php } ?>
+            </div>
+
+            <div class="pb-add-injection-wrap">
+                <button type="button" class="button" id="pb-add-injection"><?php esc_html_e( 'Add Another Row', 'promo-banner' ); ?></button>
+            </div>
+
+            <!-- Developer template for JS cloning -->
+            <script type="text/template" id="pb-injection-row-template">
+                <div class="pb-injection-row">
+                    <div>
+                        <label><?php esc_html_e( 'After Product #', 'promo-banner' ); ?></label>
+                        <input type="number" class="pb-inj-pos" name="pb_grid_injections[{index}][position]" value="" min="1" step="1" style="width: 120px;" placeholder="e.g. 4" />
+                    </div>
+                    <div>
+                        <label><?php esc_html_e( 'Elementor Template ID', 'promo-banner' ); ?></label>
+                        <input type="number" name="pb_grid_injections[{index}][template_id]" value="" min="1" step="1" style="width: 160px;" placeholder="e.g. 150" />
+                    </div>
+                    <div style="margin-top: 16px;">
+                        <a href="#" class="pb-remove-injection" title="<?php esc_attr_e( 'Remove', 'promo-banner' ); ?>">&times;</a>
+                    </div>
+                </div>
+            </script>
+        </div>
+        <?php
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
     // Shortcode Info Meta Box
     // ──────────────────────────────────────────────────────────────────────────
 
@@ -473,11 +575,30 @@ class PB_Admin {
             'pb_cookie_days' => '_pb_cookie_days',
             'pb_bg_image_id' => '_pb_bg_image_id',
             'pb_priority'    => '_pb_priority',
+            'pb_grid_columns'=> '_pb_grid_columns',
         ];
         foreach ( $numeric_fields as $field => $meta_key ) {
             if ( isset( $_POST[ $field ] ) ) {
                 update_post_meta( $post_id, $meta_key, absint( $_POST[ $field ] ) );
             }
+        }
+
+        // In-Grid Injections Array Field.
+        if ( isset( $_POST['pb_grid_injections'] ) && is_array( $_POST['pb_grid_injections'] ) ) {
+            $injections = [];
+            foreach ( wp_unslash( $_POST['pb_grid_injections'] ) as $row ) {
+                $pos = isset( $row['position'] ) ? absint( $row['position'] ) : 0;
+                $tid = isset( $row['template_id'] ) ? absint( $row['template_id'] ) : 0;
+                if ( $pos > 0 || $tid > 0 ) {
+                    $injections[] = [
+                        'position'    => $pos ?: '',
+                        'template_id' => $tid ?: '',
+                    ];
+                }
+            }
+            update_post_meta( $post_id, '_pb_grid_injections', $injections );
+        } else {
+            update_post_meta( $post_id, '_pb_grid_injections', [] );
         }
 
         // Checkbox fields.
@@ -548,6 +669,7 @@ class PB_Admin {
                     'before_woo_content' => 'Before WC Content',
                     'after_woo_content'  => 'After WC Content',
                     'before_woo_sidebar' => 'Before WC Sidebar',
+                    'in_product_grid'    => 'In Product Grid',
                     'shortcode_only'     => 'Shortcode Only',
                 ];
                 $display = [];

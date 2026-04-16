@@ -111,6 +111,83 @@
             }
         });
 
+        // ── In-Grid Injection Rows ───────────────────────────────────────────
+        
+        function pbRenumberRows() {
+            $('#pb-injection-rows .pb-injection-row').each(function(index) {
+                $(this).find('input').each(function() {
+                    var name = $(this).attr('name');
+                    if (name) {
+                        name = name.replace(/\[\d+\]/, '[' + index + ']');
+                        $(this).attr('name', name);
+                    }
+                });
+            });
+        }
+
+        $(document).on('click', '#pb-add-injection', function(e) {
+            e.preventDefault();
+            var template = $('#pb-injection-row-template').html();
+            var count = $('#pb-injection-rows .pb-injection-row').length;
+            template = template.replace(/{index}/g, count);
+            $('#pb-injection-rows').append(template);
+            pbRenumberRows();
+        });
+
+        $(document).on('click', '.pb-remove-injection', function(e) {
+            e.preventDefault();
+            $(this).closest('.pb-injection-row').remove();
+            pbRenumberRows();
+        });
+
+        $(document).on('click', '.pb-preset-btn', function(e) {
+            e.preventDefault();
+            var pos = $(this).data('pos');
+            
+            // Look for an empty position field
+            var $emptyPos = $('#pb-injection-rows .pb-injection-row').filter(function() {
+                var $posInput = $(this).find('.pb-inj-pos');
+                var $tidInput = $(this).find('input[name$=\\[template_id\\]]');
+                return $posInput.val() === '' && $tidInput.val() === '';
+            }).first().find('.pb-inj-pos');
+            
+            if ($emptyPos.length) {
+                $emptyPos.val(pos);
+            } else {
+                // Add new row if no empty one found
+                $('#pb-add-injection').trigger('click');
+                var $newPos = $('#pb-injection-rows .pb-injection-row:last-child .pb-inj-pos');
+                $newPos.val(pos);
+            }
+        });
+
+        function toggleGridBox() {
+            if ($('input[name="pb_locations[]"][value="in_product_grid"]').is(':checked')) {
+                $('#pb_grid_injections').show();
+            } else {
+                $('#pb_grid_injections').hide();
+            }
+        }
+        
+        $('input[name="pb_locations[]"][value="in_product_grid"]').on('change', toggleGridBox);
+        // Delay slightly on load in case the metabox hasn't fully rendered in DOM yet
+        setTimeout(toggleGridBox, 100);
+
+        // ── Search Filter for Multi-Selects ──────────────────────────────────
+        $(document).on('input', '.pb-filter-input', function() {
+            var term = $(this).val().toLowerCase();
+            var $select = $(this).next('select');
+            
+            $select.find('option').each(function() {
+                var text = $(this).text().toLowerCase();
+                if (text.indexOf(term) > -1) {
+                    $(this).show();
+                } else {
+                    $(this).hide();
+                }
+            });
+        });
+
     });
 
 })(jQuery);
